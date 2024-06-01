@@ -47,6 +47,27 @@ namespace ASD2
                 return true;
             
             var used = AvailableColors(g, v, coloring, numberOfColors);
+            
+            int n = g.OutNeighbors(v).Select((i => (coloring[i] == -1) ? 1 : 0)).Sum();
+            int c = used.Select((b => (b) ? 0 : 1)).Sum();
+
+            if (n < c)
+            {
+                if (GreedyColoring(g, v + 1, coloring, numberOfColors))
+                {
+                    used = AvailableColors(g, v, coloring, numberOfColors);
+                    for (int i = 0; i < used.Length; i++)
+                        if (!used[i])
+                        {
+                            coloring[v] = i;
+                            break;
+                        }
+
+                    return true;
+                }
+
+                return false;
+            }
 
             for (int i = 0; i < used.Length; i++)
             {
