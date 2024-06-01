@@ -18,10 +18,14 @@ namespace ASD2
             int[] coloring = new int[g.VertexCount];
             Array.Fill(coloring, -1);
 
-            for (int i = 1; i <= g.VertexCount; i++)
+            int numberOfColors;
+            for (numberOfColors = 1; numberOfColors <= g.VertexCount; numberOfColors++)
             {
-                
+                if (GreedyColoring(g, 0, coloring, numberOfColors))
+                    break;
             }
+
+            return (numberOfColors, coloring);
         }
 
         public bool[] AvailableColors(Graph g, int v, int[] coloring, int numberOfColors)
@@ -39,8 +43,10 @@ namespace ASD2
 
         public bool GreedyColoring(Graph g, int v, int[] coloring, int numberOfColors)
         {
-            var used = AvailableColors(g, v, coloring, numberOfColors);
+            if (v == g.VertexCount)
+                return true;
             
+            var used = AvailableColors(g, v, coloring, numberOfColors);
 
             for (int i = 0; i < used.Length; i++)
             {
