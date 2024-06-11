@@ -48,31 +48,45 @@ namespace ASD2
         public (int numberOfColors, int[] coloring) FindBestColoringRec(Graph g, int v, int[] coloring, 
             int numberOfColors, int maxNumberOfColors = Int32.MaxValue)
         {
-            if (v == g.VertexCount)
-                return (numberOfColors, coloring);
+            // If there is a coloring with maxNumberOfColors < than current numberOfColors, stop this branch
+            if (numberOfColors >= maxNumberOfColors)
+                return (Int32.MaxValue, new int[0]);
+            
+            // If we are at the last vertex, then the coloring is complete
+            if (v >= g.VertexCount)
+            {
+                var res = (int[])coloring.Clone();
+                return (numberOfColors, res);
+            }
             
             (int color, int n, int f, bool[] used) c = FindSmallestAvailableColor(g, v, coloring, numberOfColors);
-            // if (c.color >= maxNumberOfColors)
-            //     return (Int32.MaxValue, new int[0]);
+            if (c.color >= maxNumberOfColors)
+                return (Int32.MaxValue, new int[0]);
             
+            // // If we are at the last vertex, then the coloring is complete
+            // if (v >= g.VertexCount)
+            // {
+            //     var res = (int[])coloring.Clone();
+            //     res[v] = c.color;
+            //     if (c.color >= numberOfColors)
+            //         numberOfColors++;
+            //     return (numberOfColors, res);
+            // }
+            
+            // moze powinienem ustawiac -1 dla usunietych (na chwile) wierzcholkow a 0 dla niuepokolorowanhych???
             if (c.n < c.f)
             {
-                (int numberOfColors, int[] coloring) temp = FindBestColoringRec(g, v + 1, coloring, numberOfColors);//, maxNumberOfColors);
-                // if (temp.numberOfColors >= maxNumberOfColors)
-                //     return (Int32.MaxValue, new int[0]);
+                (int numberOfColors, int[] coloring) temp = FindBestColoringRec(g, v + 1, coloring, numberOfColors, maxNumberOfColors);
+                if (temp.numberOfColors >= maxNumberOfColors)
+                    return (Int32.MaxValue, new int[0]);
                 (int color, int n, int f, bool[] used) t =
                     FindSmallestAvailableColor(g, v, temp.coloring, temp.numberOfColors);
-                // if (t.color >= temp.numberOfColors) // chyba niepotrzebne bo i tak juz mial wiecej kolorow niz potrzebuje
-                //     temp.numberOfColors++;
                 var res = (int[])temp.coloring.Clone();
                 res[v] = t.color;
                 
                 return (temp.numberOfColors, res);
             }
             
-            // teraz wywolywanie na rozne sposoby i branie najlepszego, czyli w sumie co?
-            // najpierw koloruje wierzcholek najmniejszym mozliwym kolorem i w razie potrzeby
-            // coloring[v] = c.color;
             (int numberOfColors, int[] coloring) best = (int.MaxValue, new int[0]);
             int tf = 0;
             if (c.color == numberOfColors)
@@ -87,7 +101,7 @@ namespace ASD2
                 
                 tf++;
                 coloring[v] = i;
-                (int numberOfColors, int[] coloring) temp = FindBestColoringRec(g, v + 1, coloring, numberOfColors);//, Math.Min(best.numberOfColors, maxNumberOfColors));
+                (int numberOfColors, int[] coloring) temp = FindBestColoringRec(g, v + 1, coloring, numberOfColors, Math.Min(best.numberOfColors, maxNumberOfColors));
                 if (temp.numberOfColors < best.numberOfColors)
                 {
                     best.numberOfColors = temp.numberOfColors;
