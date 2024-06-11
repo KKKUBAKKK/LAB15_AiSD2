@@ -16,33 +16,42 @@ namespace ASD2
         public (int numberOfColors, int[] coloring) FindBestColoring(Graph g)
         {
             int[] coloring = new int[g.VertexCount];
-            for (int i = 0; i < g.VertexCount; i++)
-                coloring[i] = -1;
+            // for (int i = 0; i < g.VertexCount; i++)
+            //     coloring[i] = -1;
 
-            var res = FindBestColoringRec(g, 0, coloring, 0);
+            var maxNumberOfColors = Int32.MaxValue;
+            // var maxNumberOfColors = 0;
+            // for (int i = 0; i < g.VertexCount; i++)
+            //     if (maxNumberOfColors < g.Degree(i))
+            //         maxNumberOfColors = g.Degree(i);
+
+            var res = FindBestColoringRec(g, 0, coloring, 0, maxNumberOfColors);
+            // return (res.coloring.Max(), res.coloring);
             return res;
         }
 
         // Funkcja dziala w ten sposob ze jesli nie znajdzie 0 <= kolor < numberOfColors, to zwraca nowy
         public (int color, int n, int f, bool[] used) FindSmallestAvailableColor(Graph g, int v, int[] coloring, int numberOfColors)
         {
-            bool[] used = new bool[numberOfColors];
+            bool[] used = new bool[numberOfColors + 1];
             int n = 0;
             foreach (var neighbor in g.OutNeighbors(v))
             {
-                if (coloring[neighbor] != -1)
+                if (coloring[neighbor] > numberOfColors)
+                    Console.Write("kolory - ");
+                if (coloring[neighbor] != -1 && coloring[neighbor] != 0)
                     used[coloring[neighbor]] = true;
-                else
+                else if (coloring[neighbor] != -1)
                     n++;
             }
 
-            int f = used.Select((b => (b) ? 0 : 1)).Sum();
+            int f = used.Select((b => (b) ? 0 : 1)).Sum() - 1;
             
-            for (int i = 0; i < used.Length; i++)
+            for (int i = 1; i < used.Length; i++)
                 if (!used[i])
                     return (i, n, f, used);
 
-            return (numberOfColors, n, f, used);
+            return (numberOfColors + 1, n, f, used);
         }
 
         public (int numberOfColors, int[] coloring) FindBestColoringRec(Graph g, int v, int[] coloring, 
@@ -63,6 +72,13 @@ namespace ASD2
             if (c.color >= maxNumberOfColors)
                 return (Int32.MaxValue, new int[0]);
             
+            // if (v == g.VertexCount - 1)
+            // {
+            //     var res = (int[])coloring.Clone();
+            //     res[v] = c.color;
+            //     return (Math.Max(numberOfColors, c.color), res);
+            // }
+            
             // // If we are at the last vertex, then the coloring is complete
             // if (v >= g.VertexCount)
             // {
@@ -73,10 +89,13 @@ namespace ASD2
             //     return (numberOfColors, res);
             // }
             
-            // moze powinienem ustawiac -1 dla usunietych (na chwile) wierzcholkow a 0 dla niuepokolorowanhych???
-            if (c.n < c.f)
+            if (c.color > numberOfColors)
+                numberOfColors++;
+            else if (c.n < c.f)
             {
+                coloring[v] = -1;
                 (int numberOfColors, int[] coloring) temp = FindBestColoringRec(g, v + 1, coloring, numberOfColors, maxNumberOfColors);
+                coloring[v] = 0;
                 if (temp.numberOfColors >= maxNumberOfColors)
                     return (Int32.MaxValue, new int[0]);
                 (int color, int n, int f, bool[] used) t =
@@ -89,9 +108,9 @@ namespace ASD2
             
             (int numberOfColors, int[] coloring) best = (int.MaxValue, new int[0]);
             int tf = 0;
-            if (c.color == numberOfColors)
-                numberOfColors++;
-            for (int i = c.color; i < numberOfColors; i++)
+            // if (c.color > numberOfColors)
+            //     numberOfColors++;
+            for (int i = c.color; i <= numberOfColors; i++)
             {
                 if (tf > c.f)
                     break;
@@ -107,7 +126,7 @@ namespace ASD2
                     best.numberOfColors = temp.numberOfColors;
                     best.coloring = (int[])temp.coloring.Clone();
                 }
-                coloring[v] = -1;
+                coloring[v] = 0;
             }
             
             return best;

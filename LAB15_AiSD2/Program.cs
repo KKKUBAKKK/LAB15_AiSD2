@@ -91,7 +91,7 @@ namespace ASD2
             }
 
             return (res, msg);
-            //return (res, msg + base.Description);
+            // return (res, msg + " - " +base.Description);
         }
 
         bool isColoringOk()
