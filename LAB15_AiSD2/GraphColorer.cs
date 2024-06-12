@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using ASD;
 using ASD.Graphs;
@@ -16,86 +17,110 @@ namespace ASD2
         /// dowolnymi liczbami całkowitymi.</returns>
         public (int numberOfColors, int[] coloring) FindBestColoring(Graph g)
         {
-            return Brown(g);
+            return (0, new int[0]);
         }
-
-        public (int numberOfColors, int[] coloring) Brown(Graph g)
+        
+        // Wybor wierzcholka, ktory ma mniej dostepnych kolorow niz niepokolorowanych sasiadow i ma z takich
+        // wierzcholkow najmniej dostepnych kolorow, a jesli tyle samo, to najwiecej niepokolorowanych sasiadow uncolored, coloring, avcolors, avneighbors
+        public int FindVertexToColor(List<int> coloring, List<int> freeVertices, List<int> freeColors, List<int> freeNeighbors,
+            System.Collections.Generic.Stack<int> cutoffStack)//, ref int cutoffNumber)//, List<(int, int)> cutoffList)
         {
-            int n = g.VertexCount;
-            var vertices = Enumerable.Range(0, n).OrderByDescending(v => g.Degree(v)).ToArray();
-            int[] coloring = new int[n];
-            coloring[vertices[0]] = 1;
-            int i = 2, k = n, q = 1;
-            List<int>[] U = new List<int>[n];
-            for (int j = 0; j < n; j++)
-                U[j] = new List<int>();
-            int[] l = new int[n];
-            l[0] = 1;
-            bool updateU = true;
-
-            while (i > 1)
+            int res = -1;
+            for (int i = 0; i < freeVertices.Count; i++)
             {
-                if (updateU)
+                int v = freeVertices[i];
+                if (freeNeighbors[i] < freeColors[i])
                 {
-                    int vi = vertices[i - 1];
-                    U[i - 1] = new List<int>(Enumerable.Range(1, q + 1));
-                    foreach (var neighbor in g.OutNeighbors(vi))
-                    {
-                        if (coloring[neighbor] != 0)
-                            U[i - 1].Remove(coloring[neighbor]);
-                    }
-                }
-
-                if (U[i - 1].Count == 0)
-                {
+                    freeVertices.Remove(v);
                     i--;
-                    q = l[i - 1];
-                    updateU = false;
+                    coloring[v] = -1;
+                    // cutoffList.Add((v, freeColors[v]));
+                    // cutoffNumber++;
+                    cutoffStack.Push(v);
                 }
-                else
+                else if (res == -1 || freeColors[res] > freeColors[v] || 
+                         (freeColors[res] == freeColors[v] && freeNeighbors[v] > freeNeighbors[res]))
                 {
-                    int vi = vertices[i - 1];
-                    int j = U[i - 1][0];
-                    coloring[vi] = j;
-                    U[i - 1].Remove(j);
-
-                    if (j < k)
-                    {
-                        if (j > q)
-                            q++;
-                        
-                        if (i == n)
-                        {
-                            // TODO: store the current solution (jak???)
-                            k = q;
-                            for (int c = 0; c < n; c++)
-                                if (coloring[vertices[c]] == k)
-                                {
-                                    j = k;
-                                    break;
-                                }
-
-                            i = j - 1;
-                            q = k - 1;
-                            updateU = false;
-                        }
-                        else
-                        {
-                            l[i - 1] = q;
-                            i++;
-                            updateU = true;
-                        }
-                    }
-                    else
-                    {
-                        i--;
-                        q = l[i - 1];
-                        updateU = false;
-                    }
+                    res = v;
                 }
             }
 
-            return (coloring.Max(), coloring);
+            return res;
+        }
+        
+        // Funkcja obsluguje pokolorowanie wszystkich wierzcholkow
+        public void CheckColoring(ref int numberOfColors, ref int bestNumberOfColors, 
+            // List<(int, int)> cutoffList, List<int> bestCutoffList, 
+            bool[,] takenColors, bool[,] bestTakenColors,
+            List<int> coloring, List<int> bestColoring,
+            List<int> freeVertices, 
+            List<int> freeColors, List<int> bestFreeColors,
+            List<int> freeNeighbors,
+            System.Collections.Generic.Stack<int> cutoffStack, List<int> bestCutoffList)//,
+            // ref int cutoffNumber)
+        {
+
+            if (numberOfColors < bestNumberOfColors)
+            {
+                bestNumberOfColors = numberOfColors;
+                bestTakenColors = (bool[,])takenColors.Clone();
+                bestColoring.Clear();
+                bestColoring.AddRange(coloring);
+                bestFreeColors.Clear();
+                bestFreeColors.AddRange(freeColors);
+            }
+            
+            while (cutoffStack.Count > 0)
+                freeVertices.Add(cutoffStack.Pop());
+        }
+        
+        // Funkcja wywoluje rekurencje na kazdym mozliwym kolorze, przed przygotowuje dane, a po przywraca je
+        public void RecursiveCall(int v, int numberOfColors, bool[,] takenColors, List<int> freeVertices, 
+            List<int> freeColors, List<int> freeNeighbors, List<int> coloring, Graph g)
+        {
+            var log = new System.Collections.Generic.Stack<(int, bool)>();
+            freeVertices.Remove(v);
+            
+            for (int i = 0; i < numberOfColors; i++)
+            {
+                if (takenColors[v, i])
+                    continue;
+
+                coloring[v] = i;
+
+                foreach (var neighbor in g.OutNeighbors(v))
+                {
+                    if (!takenColors[neighbor, i])
+                    {
+                        log.Push((neighbor, true));
+                        takenColors[neighbor, i] = true;
+                        freeColors[neighbor]--;
+                    }
+                    else
+                        log.Push((neighbor, false));
+
+                    freeNeighbors[neighbor]--;
+                }
+                
+                // TODO: WYWOLANIE REKURENCYJNE GLOWNEJ FUNKCJI TUTAJ
+
+                while (log.Count > 0)
+                {
+                    var transaction = log.Pop();
+                    if (transaction.Item2)
+                    {
+                        takenColors[transaction.Item1, i] = false;
+                        freeColors[transaction.Item1]++;
+                    }
+
+                    freeNeighbors[transaction.Item1]++;
+                }
+                
+                log.Clear();
+            }
+            
+            coloring[v] = -2;
+            freeVertices.Add(v);
         }
     }
 }
