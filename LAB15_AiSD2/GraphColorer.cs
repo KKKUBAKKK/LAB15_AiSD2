@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using ASD;
 using ASD.Graphs;
 
 namespace ASD2
@@ -13,19 +14,28 @@ namespace ASD2
         /// <param name="g">Graf (nieskierowany)</param>
         /// <returns>Liczba użytych kolorów i kolorowanie (coloring[i] to kolor wierzchołka i). Kolory mogą być
         /// dowolnymi liczbami całkowitymi.</returns>
-        public (int numberOfColors, int[] coloring) FindBestColoring(Graph g)
+        public (int numberOfColors, int[] coloring) FindBestColoring(Graph g) 
         {
+            // TODO: caly algorytm jest zle, trzeba sprawdzac czy istnieja kolorowania od delta + 1 do 0, (chyba)
             int[] coloring = new int[g.VertexCount];
             // for (int i = 0; i < g.VertexCount; i++)
             //     coloring[i] = -1;
 
-            var maxNumberOfColors = Int32.MaxValue;
-            // var maxNumberOfColors = 0;
+            // var pq = new SafePriorityQueue<Int32, Int32>(); // TODO: pewnie powinno byc bardziej skomplikowane (wazna jest kolejnosc wierzcholkow)
             // for (int i = 0; i < g.VertexCount; i++)
-            //     if (maxNumberOfColors < g.Degree(i))
-            //         maxNumberOfColors = g.Degree(i);
+            //     pq.Insert(i);
 
-            var res = FindBestColoringRec(g, 0, coloring, 0, maxNumberOfColors);
+            var maxNumberOfColors = Int32.MaxValue;
+            // var maxNumberOfColors = 0; // TODO: powinno dzialac ale nie dziala
+            // for (int i = 0; i < g.VertexCount; i++)
+            //     if (maxNumberOfColors < g.Degree(i)) 
+            //         maxNumberOfColors = g.Degree(i) + 1;
+
+            (int numberOfColors, int[] coloring) res;
+            // if (maxNumberOfColors > 1)
+            res = FindBestColoringRec(g, 0, coloring, 0, maxNumberOfColors);
+            // else
+            //     return (1, new int[g.VertexCount]);
             // return (res.coloring.Max(), res.coloring);
             return res;
         }
@@ -37,8 +47,8 @@ namespace ASD2
             int n = 0;
             foreach (var neighbor in g.OutNeighbors(v))
             {
-                if (coloring[neighbor] > numberOfColors)
-                    Console.Write("kolory - ");
+                // if (coloring[neighbor] > numberOfColors)
+                //     Console.Write("kolory - ");
                 if (coloring[neighbor] != -1 && coloring[neighbor] != 0)
                     used[coloring[neighbor]] = true;
                 else if (coloring[neighbor] != -1)
@@ -93,17 +103,20 @@ namespace ASD2
                 numberOfColors++;
             else if (c.n < c.f)
             {
-                coloring[v] = -1;
+                // coloring[v] = -1;
                 (int numberOfColors, int[] coloring) temp = FindBestColoringRec(g, v + 1, coloring, numberOfColors, maxNumberOfColors);
-                coloring[v] = 0;
+                // coloring[v] = 0;
                 if (temp.numberOfColors >= maxNumberOfColors)
                     return (Int32.MaxValue, new int[0]);
                 (int color, int n, int f, bool[] used) t =
                     FindSmallestAvailableColor(g, v, temp.coloring, temp.numberOfColors);
-                var res = (int[])temp.coloring.Clone();
-                res[v] = t.color;
+                // if (c.color > temp.numberOfColors)
+                //     Console.Write("bad order - ");
+                // var res = (int[])temp.coloring.Clone();
+                // res[v] = t.color;
+                temp.coloring[v] = t.color;
                 
-                return (temp.numberOfColors, res);
+                return temp;
             }
             
             (int numberOfColors, int[] coloring) best = (int.MaxValue, new int[0]);
