@@ -14,135 +14,88 @@ namespace ASD2
         /// <param name="g">Graf (nieskierowany)</param>
         /// <returns>Liczba użytych kolorów i kolorowanie (coloring[i] to kolor wierzchołka i). Kolory mogą być
         /// dowolnymi liczbami całkowitymi.</returns>
-        public (int numberOfColors, int[] coloring) FindBestColoring(Graph g) 
+        public (int numberOfColors, int[] coloring) FindBestColoring(Graph g)
         {
-            // TODO: caly algorytm jest zle, trzeba sprawdzac czy istnieja kolorowania od delta + 1 do 0, (chyba)
-            int[] coloring = new int[g.VertexCount];
-            // for (int i = 0; i < g.VertexCount; i++)
-            //     coloring[i] = -1;
-
-            // var pq = new SafePriorityQueue<Int32, Int32>(); // TODO: pewnie powinno byc bardziej skomplikowane (wazna jest kolejnosc wierzcholkow)
-            // for (int i = 0; i < g.VertexCount; i++)
-            //     pq.Insert(i);
-
-            var maxNumberOfColors = Int32.MaxValue;
-            // var maxNumberOfColors = 0; // TODO: powinno dzialac ale nie dziala
-            // for (int i = 0; i < g.VertexCount; i++)
-            //     if (maxNumberOfColors < g.Degree(i)) 
-            //         maxNumberOfColors = g.Degree(i) + 1;
-
-            (int numberOfColors, int[] coloring) res;
-            // if (maxNumberOfColors > 1)
-            res = FindBestColoringRec(g, 0, coloring, 0, maxNumberOfColors);
-            // else
-            //     return (1, new int[g.VertexCount]);
-            // return (res.coloring.Max(), res.coloring);
-            return res;
+            return Brown(g);
         }
 
-        // Funkcja dziala w ten sposob ze jesli nie znajdzie 0 <= kolor < numberOfColors, to zwraca nowy
-        public (int color, int n, int f, bool[] used) FindSmallestAvailableColor(Graph g, int v, int[] coloring, int numberOfColors)
+        public (int numberOfColors, int[] coloring) Brown(Graph g)
         {
-            bool[] used = new bool[numberOfColors + 1];
-            int n = 0;
-            foreach (var neighbor in g.OutNeighbors(v))
-            {
-                // if (coloring[neighbor] > numberOfColors)
-                //     Console.Write("kolory - ");
-                if (coloring[neighbor] != -1 && coloring[neighbor] != 0)
-                    used[coloring[neighbor]] = true;
-                else if (coloring[neighbor] != -1)
-                    n++;
-            }
+            int n = g.VertexCount;
+            var vertices = Enumerable.Range(0, n).OrderByDescending(v => g.Degree(v)).ToArray();
+            int[] coloring = new int[n];
+            coloring[vertices[0]] = 1;
+            int i = 2, k = n, q = 1;
+            List<int>[] U = new List<int>[n];
+            for (int j = 0; j < n; j++)
+                U[j] = new List<int>();
+            int[] l = new int[n];
+            l[0] = 1;
+            bool updateU = true;
 
-            int f = used.Select((b => (b) ? 0 : 1)).Sum() - 1;
-            
-            for (int i = 1; i < used.Length; i++)
-                if (!used[i])
-                    return (i, n, f, used);
-
-            return (numberOfColors + 1, n, f, used);
-        }
-
-        public (int numberOfColors, int[] coloring) FindBestColoringRec(Graph g, int v, int[] coloring, 
-            int numberOfColors, int maxNumberOfColors = Int32.MaxValue)
-        {
-            // If there is a coloring with maxNumberOfColors < than current numberOfColors, stop this branch
-            if (numberOfColors >= maxNumberOfColors)
-                return (Int32.MaxValue, new int[0]);
-            
-            // If we are at the last vertex, then the coloring is complete
-            if (v >= g.VertexCount)
+            while (i > 1)
             {
-                var res = (int[])coloring.Clone();
-                return (numberOfColors, res);
-            }
-            
-            (int color, int n, int f, bool[] used) c = FindSmallestAvailableColor(g, v, coloring, numberOfColors);
-            if (c.color >= maxNumberOfColors)
-                return (Int32.MaxValue, new int[0]);
-            
-            // if (v == g.VertexCount - 1)
-            // {
-            //     var res = (int[])coloring.Clone();
-            //     res[v] = c.color;
-            //     return (Math.Max(numberOfColors, c.color), res);
-            // }
-            
-            // // If we are at the last vertex, then the coloring is complete
-            // if (v >= g.VertexCount)
-            // {
-            //     var res = (int[])coloring.Clone();
-            //     res[v] = c.color;
-            //     if (c.color >= numberOfColors)
-            //         numberOfColors++;
-            //     return (numberOfColors, res);
-            // }
-            
-            if (c.color > numberOfColors)
-                numberOfColors++;
-            else if (c.n < c.f)
-            {
-                // coloring[v] = -1;
-                (int numberOfColors, int[] coloring) temp = FindBestColoringRec(g, v + 1, coloring, numberOfColors, maxNumberOfColors);
-                // coloring[v] = 0;
-                if (temp.numberOfColors >= maxNumberOfColors)
-                    return (Int32.MaxValue, new int[0]);
-                (int color, int n, int f, bool[] used) t =
-                    FindSmallestAvailableColor(g, v, temp.coloring, temp.numberOfColors);
-                // if (c.color > temp.numberOfColors)
-                //     Console.Write("bad order - ");
-                // var res = (int[])temp.coloring.Clone();
-                // res[v] = t.color;
-                temp.coloring[v] = t.color;
-                
-                return temp;
-            }
-            
-            (int numberOfColors, int[] coloring) best = (int.MaxValue, new int[0]);
-            int tf = 0;
-            // if (c.color > numberOfColors)
-            //     numberOfColors++;
-            for (int i = c.color; i <= numberOfColors; i++)
-            {
-                if (tf > c.f)
-                    break;
-                
-                if (i < c.used.Length && c.used[i])
-                    continue;
-                
-                tf++;
-                coloring[v] = i;
-                (int numberOfColors, int[] coloring) temp = FindBestColoringRec(g, v + 1, coloring, numberOfColors, Math.Min(best.numberOfColors, maxNumberOfColors));
-                if (temp.numberOfColors < best.numberOfColors)
+                if (updateU)
                 {
-                    best.numberOfColors = temp.numberOfColors;
-                    best.coloring = (int[])temp.coloring.Clone();
+                    int vi = vertices[i - 1];
+                    U[i - 1] = new List<int>(Enumerable.Range(1, q + 1));
+                    foreach (var neighbor in g.OutNeighbors(vi))
+                    {
+                        if (coloring[neighbor] != 0)
+                            U[i - 1].Remove(coloring[neighbor]);
+                    }
                 }
-                coloring[v] = 0;
+
+                if (U[i - 1].Count == 0)
+                {
+                    i--;
+                    q = l[i - 1];
+                    updateU = false;
+                }
+                else
+                {
+                    int vi = vertices[i - 1];
+                    int j = U[i - 1][0];
+                    coloring[vi] = j;
+                    U[i - 1].Remove(j);
+
+                    if (j < k)
+                    {
+                        if (j > q)
+                            q++;
+                        
+                        if (i == n)
+                        {
+                            // TODO: store the current solution (jak???)
+                            k = q;
+                            for (int c = 0; c < n; c++)
+                                if (coloring[vertices[c]] == k)
+                                {
+                                    j = k;
+                                    break;
+                                }
+
+                            i = j - 1;
+                            q = k - 1;
+                            updateU = false;
+                        }
+                        else
+                        {
+                            l[i - 1] = q;
+                            i++;
+                            updateU = true;
+                        }
+                    }
+                    else
+                    {
+                        i--;
+                        q = l[i - 1];
+                        updateU = false;
+                    }
+                }
             }
-            
-            return best;
+
+            return (coloring.Max(), coloring);
         }
     }
 }

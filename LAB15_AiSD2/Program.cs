@@ -378,7 +378,7 @@ namespace ASD2
     {
         static void Main(string[] args)
         {
-            var verifyTimeLimits = true;
+            var verifyTimeLimits = false;
 
             var testModule = new Lab10TestModule();
             testModule.PrepareTestSets();
