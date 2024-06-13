@@ -24,7 +24,7 @@ namespace ASD2
             int[] freeColors = new int[g.VertexCount];
             int[] bestFreeColors = new int[g.VertexCount];
             int[] freeNeighbors = new int[g.VertexCount];
-            var cutoffStack = new System.Collections.Generic.Stack<int>();
+            var cutoffList = new List<int>();
             var bestCutoffList = new List<int>();
             int numberOfColors = 1;
             int bestNumberOfColors = 1;
@@ -42,7 +42,7 @@ namespace ASD2
             var takenColors = new bool[g.VertexCount, g.VertexCount];
             var bestTakenColors = new bool[g.VertexCount, g.VertexCount];
             
-            FindBestColoringRec( g, numberOfColors,  ref bestNumberOfColors, cutoffStack, freeVertices, freeColors, 
+            FindBestColoringRec( g, numberOfColors,  ref bestNumberOfColors, cutoffList, freeVertices, freeColors, 
                 freeNeighbors, coloring, ref bestColoring, takenColors, ref bestTakenColors, ref bestFreeColors, 
                 ref bestCutoffList);
             
@@ -53,41 +53,40 @@ namespace ASD2
         
         // Glowna funkcja rekurencyjna programu
         public void FindBestColoringRec(Graph g, int numberOfColors,  ref int bestNumberOfColors, 
-            System.Collections.Generic.Stack<int> cutoffStack, List<int> freeVertices, int[] freeColors, 
+            List<int> cutoffList, List<int> freeVertices, int[] freeColors, 
             int[] freeNeighbors, int[] coloring, ref int[] bestColoring, bool[,] takenColors, ref bool[,] bestTakenColors,
             ref int[] bestFreeColors, ref List<int> bestCutoffList)
         {
-            // TODO: implementacja
             if (numberOfColors >= bestNumberOfColors)
                 return;
             
-            int v = FindVertexToColor(ref coloring, freeVertices, ref freeColors, ref freeNeighbors, cutoffStack);
+            int v = FindVertexToColor(ref coloring, freeVertices, ref freeColors, ref freeNeighbors, cutoffList);
             
             if (freeVertices.Count == 0)
             {
                 CheckColoring(ref numberOfColors, ref bestNumberOfColors, ref takenColors, ref bestTakenColors,
-                    ref coloring, ref bestColoring, freeVertices, ref freeColors, ref bestFreeColors, cutoffStack, bestCutoffList);
+                    ref coloring, ref bestColoring, freeVertices, ref freeColors, ref bestFreeColors, cutoffList, bestCutoffList);
                 return;
             }
             
             if (v != -1)
             {
                 RecursiveCall(ref v, ref numberOfColors, ref takenColors, ref freeVertices, ref freeColors, ref freeNeighbors, ref coloring, g, 
-                    ref bestNumberOfColors, cutoffStack, ref bestColoring, ref bestTakenColors, ref bestFreeColors, bestCutoffList);
+                    ref bestNumberOfColors, cutoffList, ref bestColoring, ref bestTakenColors, ref bestFreeColors, bestCutoffList);
 
                 RecursiveCallWithNewColor(ref v, ref numberOfColors, ref bestNumberOfColors, ref takenColors, freeVertices, ref freeColors,
-                    ref freeNeighbors, ref coloring, g, cutoffStack, ref bestColoring, ref bestTakenColors, ref bestFreeColors, bestCutoffList);
+                    ref freeNeighbors, ref coloring, g, cutoffList, ref bestColoring, ref bestTakenColors, ref bestFreeColors, bestCutoffList);
             }
 
-            while (cutoffStack.Count > 0)
-                freeVertices.Add(cutoffStack.Pop());
+            freeVertices.AddRange(cutoffList);
+            cutoffList.Clear();
         }
         
         // Wybor wierzcholka, ktory ma mniej dostepnych kolorow niz niepokolorowanych sasiadow i ma z takich
         // wierzcholkow najmniej dostepnych kolorow, a jesli tyle samo, to najwiecej niepokolorowanych sasiadow
         // uncolored, coloring, avcolors, avneighbors
         public int FindVertexToColor(ref int[] coloring, List<int> freeVertices, ref int[] freeColors, ref int[] freeNeighbors,
-            System.Collections.Generic.Stack<int> cutoffStack)
+           List<int> cutoffList)
         {
             int res = -1;
             for (int i = 0; i < freeVertices.Count; i++)
@@ -98,7 +97,7 @@ namespace ASD2
                     freeVertices.Remove(v);
                     i--;
                     coloring[v] = -1;
-                    cutoffStack.Push(v);
+                    cutoffList.Add(v);
                 }
                 else if (res == -1 || freeColors[res] > freeColors[v] || 
                          (freeColors[res] == freeColors[v] && freeNeighbors[v] > freeNeighbors[res]))
@@ -111,35 +110,32 @@ namespace ASD2
         }
         
         // Funkcja obsluguje pokolorowanie wszystkich wierzcholkow
-        public void CheckColoring(ref int numberOfColors, ref int bestNumberOfColors, 
-            ref bool[,] takenColors, ref bool[,] bestTakenColors,
-            ref int[] coloring, ref int[] bestColoring,
-            List<int> freeVertices, 
-            ref int[] freeColors, ref int[] bestFreeColors,
-            System.Collections.Generic.Stack<int> cutoffStack, List<int> bestCutoffList)
+        public void CheckColoring(ref int numberOfColors, ref int bestNumberOfColors, ref bool[,] takenColors, 
+            ref bool[,] bestTakenColors, ref int[] coloring, ref int[] bestColoring, List<int> freeVertices, 
+            ref int[] freeColors, ref int[] bestFreeColors, List<int> cutoffList, List<int> bestCutoffList)
         {
 
             if (numberOfColors < bestNumberOfColors)
             {
                 bestCutoffList.Clear();
-                bestCutoffList.AddRange(cutoffStack);
+                bestCutoffList.AddRange(cutoffList);
                 bestNumberOfColors = numberOfColors;
                 bestTakenColors = (bool[,])takenColors.Clone();
                 bestColoring = (int[])coloring.Clone();
                 bestFreeColors = (int[])freeColors.Clone();
             }
             
-            while (cutoffStack.Count > 0)
-                freeVertices.Add(cutoffStack.Pop());
+            freeVertices.AddRange(cutoffList);
+            cutoffList.Clear();
         }
         
         // Funkcja wywoluje rekurencje na kazdym mozliwym kolorze, przed przygotowuje dane, a po przywraca je
         public void RecursiveCall(ref int v, ref int numberOfColors, ref bool[,] takenColors, ref List<int> freeVertices, 
             ref int[] freeColors, ref int[] freeNeighbors, ref int[] coloring, Graph g, ref int bestNumberOfColors, 
-            System.Collections.Generic.Stack<int> cutoffStack, 
-            ref int[] bestColoring, ref bool[,] bestTakenColors, ref int[] bestFreeColors, List<int> bestCutoffList)
+            List<int> cutoffList, ref int[] bestColoring, ref bool[,] bestTakenColors, ref int[] bestFreeColors, 
+            List<int> bestCutoffList)
         {
-            var log = new System.Collections.Generic.Stack<(int, bool)>();
+            var log = new List<(int, bool)>();
             freeVertices.Remove(v);
             
             for (int i = 0; i < numberOfColors; i++)
@@ -153,22 +149,23 @@ namespace ASD2
                 {
                     if (!takenColors[neighbor, i])
                     {
-                        log.Push((neighbor, true));
+                        log.Add((neighbor, true));
                         takenColors[neighbor, i] = true;
                         freeColors[neighbor]--;
                     }
                     else
-                        log.Push((neighbor, false));
+                        log.Add((neighbor, false));
 
                     freeNeighbors[neighbor]--;
                 }
                 
-                FindBestColoringRec( g, numberOfColors,  ref bestNumberOfColors, cutoffStack, freeVertices, freeColors, 
-                    freeNeighbors, coloring, ref bestColoring, takenColors, ref bestTakenColors, ref bestFreeColors, ref bestCutoffList);
+                FindBestColoringRec( g, numberOfColors,  ref bestNumberOfColors, cutoffList, freeVertices, freeColors, 
+                    freeNeighbors, coloring, ref bestColoring, takenColors, ref bestTakenColors, ref bestFreeColors, 
+                    ref bestCutoffList);
 
-                while (log.Count > 0)
+                for (int j = 0; j < log.Count; j++)
                 {
-                    var transaction = log.Pop();
+                    var transaction = log[j];
                     if (transaction.Item2)
                     {
                         takenColors[transaction.Item1, i] = false;
@@ -186,9 +183,9 @@ namespace ASD2
         }
 
         // Funkcja dodaje nowy kolor jesli jest to mozliwe i wywoluje na nim rekurencje
-        public void RecursiveCallWithNewColor(ref int v, ref int numberOfColors, ref int bestNumberOfColors, ref bool[,] takenColors, 
-            List<int> freeVertices, ref int[] freeColors, ref int[] freeNeighbors, ref int[] coloring, Graph g, 
-            System.Collections.Generic.Stack<int> cutoffStack, ref int[] bestColoring, ref bool[,] bestTakenColors, 
+        public void RecursiveCallWithNewColor(ref int v, ref int numberOfColors, ref int bestNumberOfColors,
+            ref bool[,] takenColors, List<int> freeVertices, ref int[] freeColors, ref int[] freeNeighbors, 
+            ref int[] coloring, Graph g, List<int> cutoffList, ref int[] bestColoring, ref bool[,] bestTakenColors, 
             ref int[] bestFreeColors, List<int> bestCutoffList)
         {
             if (numberOfColors + 1 >= bestNumberOfColors)
@@ -199,10 +196,8 @@ namespace ASD2
             coloring[v] = numberOfColors - 1;
 
             for (int i = 0; i < g.VertexCount; i++)
-            {
                 if (i != v)
                     freeColors[i]++;
-            }
 
             foreach (var neighbor in g.OutNeighbors(v))
             {
@@ -211,7 +206,7 @@ namespace ASD2
                 takenColors[neighbor, numberOfColors - 1] = true;
             }
             
-            FindBestColoringRec( g, numberOfColors,  ref bestNumberOfColors, cutoffStack, freeVertices, freeColors, 
+            FindBestColoringRec( g, numberOfColors,  ref bestNumberOfColors, cutoffList, freeVertices, freeColors, 
             freeNeighbors, coloring, ref bestColoring, takenColors, ref bestTakenColors, ref bestFreeColors, ref bestCutoffList);
 
             foreach (var neighbor in g.OutNeighbors(v))
@@ -222,38 +217,23 @@ namespace ASD2
             }
 
             for (int i = 0; i < g.VertexCount; i++)
-            {
                 if (i != v)
                     freeColors[i]--;
-            }
 
             numberOfColors--;
             coloring[v] = -2;
             freeVertices.Add(v);
             
-            while (cutoffStack.Count > 0)
-                freeVertices.Add(cutoffStack.Pop());
+            freeVertices.AddRange(cutoffList);
+            cutoffList.Clear();
         }
         
         // Funkcja koloruje wierzcholki pozostawione na koniec
-        public void ColorCutoffVertices(Graph g, List<int> bestCutoffList, ref int bestNumberOfColors, ref bool[,] bestTakenColors, ref int[] bestColoring)
+        public void ColorCutoffVertices(Graph g, List<int> bestCutoffList, ref int bestNumberOfColors, 
+            ref bool[,] bestTakenColors, ref int[] bestColoring)
         {
-            SafePriorityQueue<int, int> cutoffVerticesOrdered = new SafePriorityQueue<int, int>(new MyComparer(), bestCutoffList.Count);
-
             foreach (var v in bestCutoffList)
             {
-                int freeColors = 0;
-                
-                for (int i = 0; i < bestNumberOfColors; i++)
-                    if (!bestTakenColors[v, i])
-                        freeColors++;
-                
-                cutoffVerticesOrdered.Insert(v, freeColors);
-            }
-
-            while (cutoffVerticesOrdered.Count > 0)
-            {
-                int v = cutoffVerticesOrdered.Extract();
                 int c = -1;
                 
                 for (int i = 0; i <= bestNumberOfColors; i++)
@@ -267,15 +247,6 @@ namespace ASD2
                     bestTakenColors[neighbor, c] = true;
 
                 bestColoring[v] = c;
-            }
-        }
-        
-        // Klasa do kolejki priorytetowej
-        class MyComparer : Comparer<int>
-        {
-            public override int Compare(int x, int y)
-            {
-                return (x < y) ? -1 : 1;
             }
         }
     }
