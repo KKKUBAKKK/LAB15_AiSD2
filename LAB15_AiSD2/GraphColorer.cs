@@ -68,11 +68,13 @@ namespace ASD2
             
             if (v != -1)
             {
-                RecursiveCall(ref v, ref numberOfColors, ref takenColors, ref freeVertices, ref freeColors, ref freeNeighbors, ref coloring, g, 
-                    ref bestNumberOfColors, cutoffList, ref bestColoring, ref bestTakenColors, bestCutoffList);
+                RecursiveCall(ref v, ref numberOfColors, ref takenColors, ref freeVertices, ref freeColors, 
+                    ref freeNeighbors, ref coloring, g, ref bestNumberOfColors, cutoffList, ref bestColoring, 
+                    ref bestTakenColors, bestCutoffList);
 
-                RecursiveCallWithNewColor(ref v, ref numberOfColors, ref bestNumberOfColors, ref takenColors, freeVertices, ref freeColors,
-                    ref freeNeighbors, ref coloring, g, cutoffList, ref bestColoring, ref bestTakenColors, bestCutoffList);
+                RecursiveCallWithNewColor(ref v, ref numberOfColors, ref bestNumberOfColors, ref takenColors, 
+                    freeVertices, ref freeColors, ref freeNeighbors, ref coloring, g, cutoffList, ref bestColoring, 
+                    ref bestTakenColors, bestCutoffList);
             }
 
             freeVertices.AddRange(cutoffList);
